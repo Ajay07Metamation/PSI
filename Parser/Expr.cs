@@ -5,12 +5,14 @@ abstract class Node {
 }
 
 // The data-type at any NExpr node
-enum NType { Unknown, Int, Real, Bool, String, Error };
+enum NType { Unknown, Int, Real, Boolean, Char, String, Error };
 
 // Base class for all expression nodes
 abstract class NExpr : Node {
    public NType Type { get; set; }
+   public int ID { get => mId; set => mId = value; }
    abstract public T Accept<T> (Visitor<T> visitor);
+   public static int mId;
 }
 
 // Represents a binary operation node

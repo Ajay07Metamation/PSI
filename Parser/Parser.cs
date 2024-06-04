@@ -2,22 +2,39 @@
 using static Token.E;
 
 class Parser {
-   public Parser (Tokenizer tokenizer) 
+   public Parser (Tokenizer tokenizer)
       => mToken = mPrevious = (mTokenizer = tokenizer).Next ();
+
+   Token Prev => mPrevious;
    Tokenizer mTokenizer;
    Token mToken, mPrevious;
 
    public NExpr Parse () => Expression ();
 
    // Implementation --------------------------------------
-   // expression = term .
-   NExpr Expression () 
-      => Term ();
+   // expression = equality .
+   NExpr Expression () => Equality ();
+
+   // equality = equality = comparison [ ("=" | "<>") comparison ] .
+   NExpr Equality () {
+      var expr = Comparison ();
+      if (Match (EQ, NEQ))
+         expr = new NBinary (expr, Prev, Comparison ());
+      return expr;
+   }
+
+   // comparison = term [ ("<" | "<=" | ">" | ">=") term ] .
+   NExpr Comparison () {
+      var expr = Term ();
+      if (Match (LT, LEQ, GT, GEQ))
+         expr = new NBinary (expr, Prev, Term ());
+      return expr;
+   }
 
    // term = factor { ("+" | "-") factor } .
    NExpr Term () {
       var expr = Factor ();
-      while  (Match (ADD, SUB)) {
+      while (Match (ADD, SUB)) {
          var op = mPrevious;
          expr = new NBinary (expr, op, Factor ());
       }
@@ -36,15 +53,16 @@ class Parser {
 
    // unary = ( "-" | "+" ) unary | primary .
    NExpr Unary () {
-      if (Match (ADD, SUB)) 
+      if (Match (ADD, SUB)) {
          return new NUnary (mPrevious, Unary ());
+      }
       return Primary ();
    }
 
    // primary = IDENTIFIER | INTEGER | REAL | STRING | "(" expression ")" .
    NExpr Primary () {
-      if (Match (IDENT)) return new NIdentifier (mPrevious);
-      if (Match (INTEGER, REAL, STRING)) return new NLiteral (mPrevious);
+      if (Match (IDENT)) { return new NIdentifier (mPrevious); }
+      if (Match (INTEGER, REAL, STRING)) { return new NLiteral (mPrevious); }
       Expect (OPEN, "Expecting identifier or literal");
       var expr = Expression ();
       Expect (CLOSE, "Expecting ')'");
